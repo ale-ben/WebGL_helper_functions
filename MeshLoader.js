@@ -1,16 +1,33 @@
+/**
+ * Class used to convert an OBJ (+ MTL file) in a WebGL mesh.
+ * 
+ * Heavily based on https://webglfundamentals.org/webgl/lessons/webgl-load-obj.html.
+ * 
+ * Documentation on obj files: http://paulbourke.net/dataformats/obj/
+ */
 export class MeshLoader {
 
+	/**
+	 * Parser to convert an OBJ file in a WebGL mesh.
+	 * 
+	 * Note that the parser removes automatically comments and empty lines from the file.
+	 * @param {string} text - The OBJ file content
+	 * @returns {object} - An object containing the various geometries and obj defined materials
+	 */
 	static parseOBJ(text) {
-		// Parse the OBJ file removing comments and empty lines
-
-		// because indices are base 1 let's just fill in the 0th data
+		// Since the internal indices start from 1 let's just fill in the 0th data
 		const objPositions = [[0, 0, 0]];
 		const objTexcoords = [[0, 0]];
 		const objNormals = [[0, 0, 0]];
-		const objColors = [[0, 0, 0]]; // There can be non standard obj formats that have v <x> <y> <z> <red> <green> <blue>
+		/**
+		 * Used to parse non standard obj formats that have `v <x> <y> <z> <red> <green> <blue>` instead of standard `v <x> <y> <z>`
+		 */
+		const objColors = [[0, 0, 0]];
 
-		// Object representation
-		// same order as `f` indices
+		/**
+		 * Object representation of the vertex data.
+		 * The elements have the same order as the `f` indices.
+		 */
 		const objVertexData = [
 			objPositions,
 			objTexcoords,
@@ -18,8 +35,10 @@ export class MeshLoader {
 			objColors,
 		];
 
-		// WebGL representation of the object
-		// same order as `f` indices
+		/**
+		 * WebGL representation of the vertex data.
+		 * The elements have the same order as the `f` indices.
+		 */
 		let webglVertexData = [
 			[],   // positions
 			[],   // texcoords
@@ -27,25 +46,42 @@ export class MeshLoader {
 			[],   // colors
 		];
 
-		// Neede to parse mtl
-		// Since each geometry must be parsed independently in order to apply right mtl, we split the object in an array of geometries
+		/**
+		 * Keep track of the materials found in the obj file in order to try to load them later from the mtl (or from a definition in the obj file).
+		 */
 		const materialLibs = [];
+
+		/**
+		 * Since each geometry must be parsed independently in order to apply right material, we will split the object in an array of geometries
+		 */
 		const geometries = [];
+
+		/**
+		 * The current geometry being parsed
+		 */
 		let geometry;
+		
 		let groups = ['default']; // g keyword
 		let material = 'default';
 		let object = 'default'; // o keyword
 
-		const noop = () => { }; // Used to ignore keywords
+		/**
+		 * No Operation function used to skip some keywords.
+		 */
+		const noop = () => { };
 
+		/**
+		 * Generate a new geometry if the current geometry has already been used.
+		 */
 		function newGeometry() {
-			// If there is an existing geometry and it's
-			// not empty then start a new one.
 			if (geometry && geometry.data.position.length) {
 				geometry = undefined;
 			}
 		}
 
+		/**
+		 * Prepare the current geometry to receive vertex data and add it to the geometry list.
+		 */
 		function setGeometry() {
 			if (!geometry) {
 				const position = [];
@@ -73,6 +109,11 @@ export class MeshLoader {
 			}
 		}
 
+		/**
+		 * Add a vertex tuple extracted from `f` line to the current geometry.
+		 * 
+		 * @param {*} vert Vertex tuple to add to the geometry in the form of `v1/vt1/vn1`
+		 */
 		function addVertex(vert) {
 			const ptn = vert.split('/');
 			ptn.forEach((objIndexStr, i) => {
