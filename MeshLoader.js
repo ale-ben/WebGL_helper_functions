@@ -47,7 +47,7 @@ export class MeshLoader {
 		];
 
 		/**
-		 * Keep track of the materials found in the obj file in order to try to load them later from the mtl (or from a definition in the obj file).
+		 * Keep track of the material file names (MTL files) found in the obj file in order to try to load them later from the mtl (or from a definition in the obj file).
 		 */
 		const materialLibs = [];
 
@@ -60,7 +60,7 @@ export class MeshLoader {
 		 * The current geometry being parsed
 		 */
 		let geometry;
-		
+
 		let groups = ['default']; // g keyword
 		let material = 'default';
 		let object = 'default'; // o keyword
@@ -112,16 +112,20 @@ export class MeshLoader {
 		/**
 		 * Add a vertex tuple extracted from `f` line to the current geometry.
 		 * 
-		 * @param {*} vert Vertex tuple to add to the geometry in the form of `v1/vt1/vn1`
+		 * @param {string} vert Vertex tuple to add to the geometry in the form of `v1/vt1/vn1`
 		 */
 		function addVertex(vert) {
+			// Split the vertex tuple in v, vt, and vn
 			const ptn = vert.split('/');
 			ptn.forEach((objIndexStr, i) => {
 				if (!objIndexStr) {
 					return;
 				}
+				// Convert the index from string to integer
 				const objIndex = parseInt(objIndexStr);
+				// An index of -n represented the vertex n lines above the current line
 				const index = objIndex + (objIndex >= 0 ? 0 : objVertexData[i].length);
+				// Add the vertex data to the WebGL representation
 				webglVertexData[i].push(...objVertexData[i][index]);
 				// Handle non standard obj format with colors
 				// if this is the position index (index 0) and we parsed
@@ -143,8 +147,23 @@ export class MeshLoader {
 		// mtllib: material library (file containing the materials *.mtl)
 		// o: object name
 		// s: smooth shading (0 or 1)
+		/**
+		 * Switches between the different keywords.
+		 * 
+		 * - v: vertex position
+		 * - vt: texture coordinate
+		 * - vn: vertex normal
+		 * - f: face (each element is an index in the above arrays)
+		 *   - The indices are 1 based if positive or relative to the number of vertices parsed so far if negative.
+		 *   - The order of the indices are position/texcoord/normal and that all except the position are optional
+		 * - usemtl: material name
+		 * - mtllib: material library (file containing the materials *.mtl)
+		 * - o: object name
+		 * - s: smooth shading (0 or 1)
+		 */
 		const keywords = {
-			v(parts) {// Convert the string to a float and add it to the positions array
+			v(parts) {
+				// Convert the string to a float and add it to the positions array
 				// if there are more than 3 values here they are vertex colors
 				if (parts.length > 3) {
 					objPositions.push(parts.slice(0, 3).map(parseFloat));
@@ -154,13 +173,18 @@ export class MeshLoader {
 				}
 			},
 			vn(parts) {
-				objNormals.push(parts.map(parseFloat)); // Convert the string to a float and add it to the normals array
+				// Convert the string to a float and add it to the normals array
+				objNormals.push(parts.map(parseFloat));
 			},
 			vt(parts) {
-				objTexcoords.push(parts.map(parseFloat)); // Convert the string to a float and add it to the texture coordinates array
+				// Convert the string to a float and add it to the texture coordinates array
+				objTexcoords.push(parts.map(parseFloat));
 			},
-			f(parts) { // WebGL only works with triangles, we have to convert the faces to triangles
-				setGeometry(); // Since usemtl is optional, we create a new geometry if we can't find one
+			f(parts) {
+				// Initialize a new geometry, just to be sure (Should be initialized by usemtl but it is optional)
+				setGeometry();
+
+				// WebGL only works with triangles, we have to convert the faces to triangles
 				const numTriangles = parts.length - 2;
 				for (let tri = 0; tri < numTriangles; ++tri) {
 					addVertex(parts[0]);
@@ -168,54 +192,64 @@ export class MeshLoader {
 					addVertex(parts[tri + 2]);
 				}
 			},
-			s: noop,    // smoothing group, TODO: Sicuro di poterlo ignorare?
+			s: noop,    // smoothing group, ignored
 			mtllib(parts, unparsedArgs) {
-				// the spec says there can be multiple filenames here
-				// but many exist with spaces in a single filename
+				// The spec says there can be multiple mtl files in an obj file
 				materialLibs.push(unparsedArgs);
 			},
 			usemtl(parts, unparsedArgs) {
+				// Specify the material that should be used for the following faces and initialize a new geometry
 				material = unparsedArgs;
 				newGeometry();
 			},
 			g(parts) {
+				// Start a new group
 				groups = parts;
 				newGeometry();
-			}, // TODO: In verità non me ne faccio niente quindi potrebbe essere una noop?
+			},
 			o(parts, unparsedArgs) {
+				// Start a new object
 				object = unparsedArgs;
 				newGeometry();
 			},
 		};
 
-		const keywordRE = /(\w*)(?: )*(.*)/; // Match a keyword at the start of a line followed by a list of arguments regexr.com/70n6l
+		/**
+		 * Match a keyword at the start of a line followed by a list of arguments https://regexr.com/70n6l
+		 */
+		const keywordRE = /(\w*)(?: )*(.*)/;
 		const lines = text.split('\n'); // Split the text into lines using \n
 
-		for (let lineNo = 0; lineNo < lines.length; ++lineNo) { // Loop through all the lines
+		// Loop through all the lines splitted above
+		for (let lineNo = 0; lineNo < lines.length; ++lineNo) {
 
 			const line = lines[lineNo].trim(); // Trim the line removing whitespaces at the beginning and end
-			if (line === '' || line.startsWith('#')) { // Ignore empty lines and comments
+
+			// Ignore empty lines and comments
+			if (line === '' || line.startsWith('#')) {
 				continue;
 			}
 
 			const m = keywordRE.exec(line); // Split the line into keyword and arguments using keywordRE
-			if (!m) { // If the split failed, ignore the line
+			// If the split failed, ignore the line and continue
+			if (!m) {
 				continue;
 			}
-
 			const [, keyword, unparsedArgs] = m;
-			const parts = line.split(/\s+/).slice(1); // Split the line using whitespaces and ignore the first element (the keyword) FIXME: Non ho capito perchè visto che ottiene lo stesso di keywordRE.exec(line)
+
+			const parts = line.split(/\s+/).slice(1); // Split the line on whitespaces and ignore the first element (the keyword) 
 			const handler = keywords[keyword]; // Look up the keyword in the keywords object and call the corresponding function
 
-			if (!handler) { // If the keyword does not match any function, log a warning and continue
+			// If the keyword does not match any function, log a warning and continue
+			if (!handler) {
 				console.warn('unhandled keyword:', keyword, 'at line', lineNo + 1);
 				continue;
 			}
 
-			handler(parts, unparsedArgs); // Call the function with the arguments
+			handler(parts, unparsedArgs); // Call the function with the required arguments
 		}
 
-		// remove any arrays that have no entries.
+		// remove any arrays that have no entries in order to optimize the geomtery (and future renderigns).
 		for (const geometry of geometries) {
 			geometry.data = Object.fromEntries(
 				Object.entries(geometry.data).filter(([, array]) => array.length > 0));
