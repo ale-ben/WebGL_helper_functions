@@ -38,6 +38,8 @@ export class MeshLoader {
 		/**
 		 * WebGL representation of the vertex data.
 		 * The elements have the same order as the `f` indices.
+		 * 
+		 * This will be used as a cache to avoid duplicating vertices while constructing geometries.
 		 */
 		let webglVertexData = [
 			[],   // positions
@@ -136,19 +138,9 @@ export class MeshLoader {
 			});
 		}
 
-		// Keywords:
-		// v: vertex position
-		// vt: texture coordinate
-		// vn: vertex normal
-		// f: face (each element is an index in the above arrays)
-		// The indices are 1 based if positive or relative to the number of vertices parsed so far if negative.
-		// The order of the indices are position/texcoord/normal and that all except the position are optional
-		// usemtl: material name
-		// mtllib: material library (file containing the materials *.mtl)
-		// o: object name
-		// s: smooth shading (0 or 1)
+
 		/**
-		 * Switches between the different keywords.
+		 * Switches between the different keywords in the obj file.
 		 * 
 		 * - v: vertex position
 		 * - vt: texture coordinate
@@ -261,21 +253,37 @@ export class MeshLoader {
 		};
 	}
 
+	/**
+	 * Parser to load the materials for a WebGL mesh.
+	 * 
+	 * Works using the same logic as the obj parser.
+	 * @param {string} text - The MTL file content
+	 * @returns {object} - The materials definitions
+	 */
 	static parseMTL(text) {
-		// Same logic as parseOBJ
+		/**
+		 * Object containing all the materials with the material name as a keyword
+		 */
 		const materials = {};
+
+		/**
+		 * The current material
+		 */
 		let material;
 
-		// Keywords:
-		// newmtl: material name
-		// Ns: specular shininess exponent
-		// Ka: ambient color
-		// Kd: diffuse color
-		// Ks: specular color
-		// Ke: emissive color
-		// Ni: optical density
-		// d: dissolve (0.0 - 1.0)
-		// illum: illumination model (Not used here so far)  
+		/**
+		 * Switches between the different keywords in the mtl file.
+		 * 
+		 * - newmtl: material name
+		 * - Ns: specular shininess exponent
+		 * - Ka: ambient color
+		 * - Kd: diffuse color
+		 * - Ks: specular color
+		 * - Ke: emissive color
+		 * - Ni: optical density
+		 * - d: dissolve (0.0 - 1.0)
+		 * - illum: illumination model (Not used here so far)  
+		 */
 		const keywords = {
 			newmtl(parts, unparsedArgs) {
 				material = {};
