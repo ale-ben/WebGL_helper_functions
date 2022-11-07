@@ -6,7 +6,6 @@
  * Documentation on obj files: http://paulbourke.net/dataformats/obj/
  */
 export class MeshLoader {
-
 	/**
 	 * Parser to convert an OBJ file in a WebGL mesh.
 	 * 
@@ -38,6 +37,8 @@ export class MeshLoader {
 		/**
 		 * WebGL representation of the vertex data.
 		 * The elements have the same order as the `f` indices.
+		 * 
+		 * This will be used as a cache to avoid duplicating vertices while constructing geometries.
 		 */
 		let webglVertexData = [
 			[],   // positions
@@ -136,19 +137,9 @@ export class MeshLoader {
 			});
 		}
 
-		// Keywords:
-		// v: vertex position
-		// vt: texture coordinate
-		// vn: vertex normal
-		// f: face (each element is an index in the above arrays)
-		// The indices are 1 based if positive or relative to the number of vertices parsed so far if negative.
-		// The order of the indices are position/texcoord/normal and that all except the position are optional
-		// usemtl: material name
-		// mtllib: material library (file containing the materials *.mtl)
-		// o: object name
-		// s: smooth shading (0 or 1)
+
 		/**
-		 * Switches between the different keywords.
+		 * Switches between the different keywords in the obj file.
 		 * 
 		 * - v: vertex position
 		 * - vt: texture coordinate
@@ -214,40 +205,8 @@ export class MeshLoader {
 			},
 		};
 
-		/**
-		 * Match a keyword at the start of a line followed by a list of arguments https://regexr.com/70n6l
-		 */
-		const keywordRE = /(\w*)(?: )*(.*)/;
-		const lines = text.split('\n'); // Split the text into lines using \n
-
-		// Loop through all the lines splitted above
-		for (let lineNo = 0; lineNo < lines.length; ++lineNo) {
-
-			const line = lines[lineNo].trim(); // Trim the line removing whitespaces at the beginning and end
-
-			// Ignore empty lines and comments
-			if (line === '' || line.startsWith('#')) {
-				continue;
-			}
-
-			const m = keywordRE.exec(line); // Split the line into keyword and arguments using keywordRE
-			// If the split failed, ignore the line and continue
-			if (!m) {
-				continue;
-			}
-			const [, keyword, unparsedArgs] = m;
-
-			const parts = line.split(/\s+/).slice(1); // Split the line on whitespaces and ignore the first element (the keyword) 
-			const handler = keywords[keyword]; // Look up the keyword in the keywords object and call the corresponding function
-
-			// If the keyword does not match any function, log a warning and continue
-			if (!handler) {
-				console.warn('unhandled keyword:', keyword, 'at line', lineNo + 1);
-				continue;
-			}
-
-			handler(parts, unparsedArgs); // Call the function with the required arguments
-		}
+		// Parse each line of the obj file and call the appropriate function
+		parseLines(text, keywords);
 
 		// remove any arrays that have no entries in order to optimize the geomtery (and future renderigns).
 		for (const geometry of geometries) {
@@ -261,21 +220,37 @@ export class MeshLoader {
 		};
 	}
 
+	/**
+	 * Parser to load the materials for a WebGL mesh.
+	 * 
+	 * Works using the same logic as the obj parser.
+	 * @param {string} text - The MTL file content
+	 * @returns {object} - The materials definitions
+	 */
 	static parseMTL(text) {
-		// Same logic as parseOBJ
+		/**
+		 * Object containing all the materials with the material name as a keyword
+		 */
 		const materials = {};
+
+		/**
+		 * The current material
+		 */
 		let material;
 
-		// Keywords:
-		// newmtl: material name
-		// Ns: specular shininess exponent
-		// Ka: ambient color
-		// Kd: diffuse color
-		// Ks: specular color
-		// Ke: emissive color
-		// Ni: optical density
-		// d: dissolve (0.0 - 1.0)
-		// illum: illumination model (Not used here so far)  
+		/**
+		 * Switches between the different keywords in the mtl file.
+		 * 
+		 * - newmtl: material name
+		 * - Ns: specular shininess exponent
+		 * - Ka: ambient color
+		 * - Kd: diffuse color
+		 * - Ks: specular color
+		 * - Ke: emissive color
+		 * - Ni: optical density
+		 * - d: dissolve (0.0 - 1.0)
+		 * - illum: illumination model (Not used here so far)  
+		 */
 		const keywords = {
 			newmtl(parts, unparsedArgs) {
 				material = {};
@@ -294,34 +269,18 @@ export class MeshLoader {
 			illum(parts) { material.illum = parseInt(parts[0]); },
 		};
 
-		const keywordRE = /(\w*)(?: )*(.*)/;
-		const lines = text.split('\n');
-		for (let lineNo = 0; lineNo < lines.length; ++lineNo) {
-			const line = lines[lineNo].trim();
-			if (line === '' || line.startsWith('#')) {
-				continue;
-			}
-
-			const m = keywordRE.exec(line);
-			if (!m) {
-				continue;
-			}
-
-			const [, keyword, unparsedArgs] = m;
-			const parts = line.split(/\s+/).slice(1);
-			const handler = keywords[keyword];
-
-			if (!handler) {
-				console.warn('unhandled keyword:', keyword);
-				continue;
-			}
-
-			handler(parts, unparsedArgs);
-		}
+		// Parse each line of the mtl file and call the appropriate function
+		parseLines(text, keywords);
 
 		return materials;
 	}
 
+	/**
+	 * Create and binf a base texture
+	 * @param {*} gl The webgl environment
+	 * @param {*} pixel Array with color values
+	 * @returns 
+	 */
 	static create1PixelTexture(gl, pixel) {
 		const texture = gl.createTexture();
 		gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -330,6 +289,12 @@ export class MeshLoader {
 		return texture;
 	}
 
+	/**
+	 * Create a texture from an image
+	 * @param {*} gl The webgl environment
+	 * @param {*} url Address of the image
+	 * @returns 
+	 */
 	static createTexture(gl, url) {
 
 		const isPowerOf2 = (value) => (value & (value - 1)) === 0;
@@ -414,5 +379,47 @@ export class MeshLoader {
 		}
 
 		return tangents;
+	}
+}
+
+/**
+ * Private function to parse line by line an obj or mtl file
+ * @param {string} text Content of the obj or mtl file
+ * @param {*} keywords Object with the keywords to parse
+ */
+function parseLines(text, keywords) {
+	/**
+	 * Match a keyword at the start of a line followed by a list of arguments https://regexr.com/70n6l
+	 */
+	const keywordRE = /(\w*)(?: )*(.*)/;
+	const lines = text.split('\n'); // Split the text into lines using \n
+
+	// Loop through all the lines splitted above
+	for (let lineNo = 0; lineNo < lines.length; ++lineNo) {
+
+		const line = lines[lineNo].trim(); // Trim the line removing whitespaces at the beginning and end
+
+		// Ignore empty lines and comments
+		if (line === '' || line.startsWith('#')) {
+			continue;
+		}
+
+		const m = keywordRE.exec(line); // Split the line into keyword and arguments using keywordRE
+		// If the split failed, ignore the line and continue
+		if (!m) {
+			continue;
+		}
+		const [, keyword, unparsedArgs] = m;
+
+		const parts = line.split(/\s+/).slice(1); // Split the line on whitespaces and ignore the first element (the keyword) 
+		const handler = keywords[keyword]; // Look up the keyword in the keywords object and call the corresponding function
+
+		// If the keyword does not match any function, log a warning and continue
+		if (!handler) {
+			console.warn('unhandled keyword:', keyword, 'at line', lineNo + 1);
+			continue;
+		}
+
+		handler(parts, unparsedArgs); // Call the function with the required arguments
 	}
 }
