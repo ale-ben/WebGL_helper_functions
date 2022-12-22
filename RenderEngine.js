@@ -6,20 +6,24 @@ export class RenderEngine {
 		this.gl.enable(this.gl.DEPTH_TEST);
 	}
 
-	render(sharedUniforms, programInfo, objList) {
+	/**
+	 * 
+	 * @param {*} cameraUniforms Uniforms for the camera
+	 * @param {*} programInfo programInfo generated from webglUtils.createProgramInfo
+	 * @param {*} objList Array of objects to render. Each object can have a center object and a rotation object but must have a parts array.
+	 */
+	render(cameraUniforms, programInfo, objList) {
 		this.gl.useProgram(programInfo.program);
 
+		webglUtils.setUniforms(programInfo, cameraUniforms);
+
 		objList.forEach(obj => {
-
-			// calls gl.uniform
-			webglUtils.setUniforms(programInfo, sharedUniforms);
-
 			// compute the world matrix
 			// are at the same space.
 			let u_world = m4.identity();
 
 			// Handle object translation
-			if (obj.center.x != 0 || obj.center.y != 0 || obj.center.z != 0) {
+			if (obj.center && (obj.center.x != 0 || obj.center.y != 0 || obj.center.z != 0)) {
 				u_world = m4.translate(u_world, obj.center.x, obj.center.y, obj.center.z);
 			}
 
@@ -27,15 +31,17 @@ export class RenderEngine {
 			//u_world = m4.xRotate(u_world, time);
 			//u_world = m4.yRotate(u_world, time);
 			//u_world = m4.zRotate(u_world, time);
-			
-			if (obj.rotation.x != 0) {
-				u_world = m4.xRotate(u_world, obj.rotation.x);
-			}
-			if (obj.rotation.y != 0) {
-				u_world = m4.yRotate(u_world, obj.rotation.y);
-			}
-			if (obj.rotation.z != 0) {
-				u_world = m4.zRotate(u_world, obj.rotation.z);
+
+			if (obj.rotation) {
+				if (obj.rotation.x != 0) {
+					u_world = m4.xRotate(u_world, obj.rotation.x);
+				}
+				if (obj.rotation.y != 0) {
+					u_world = m4.yRotate(u_world, obj.rotation.y);
+				}
+				if (obj.rotation.z != 0) {
+					u_world = m4.zRotate(u_world, obj.rotation.z);
+				}
 			}
 
 			for (const { bufferInfo, material } of obj.parts) {
