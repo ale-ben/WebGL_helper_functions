@@ -1,0 +1,34 @@
+
+{
+  "JavaScript": {
+    "beautifiers": [
+      "Prettier",
+      "Pretty Diff",
+      "JS-Beautify",
+      "ESLint"
+    ],
+    "indent_size": 4,
+    "end_with_newline": true
+  },
+  "HTML": {
+    "beautifiers": [
+      "Pretty Diff",
+      "JS-Beautify"
+    ],
+    "indent_size": 4,
+    "end_with_newline": true
+  },
+  "JSON": {
+    "beautifiers": [
+      "Prettier",
+      "Pretty Diff",
+      "JS-Beautify"
+    ],
+    "indent_size": 4
+  },
+  "Markdown": {
+    "beautifiers": [
+      "Prettier"
+    ]
+  }
+}
