@@ -15,7 +15,7 @@ export class RenderEngine {
 
         if (options.enableTransparency) {
             gl.enable(gl.BLEND); // enable alpha blending
-            gl.blendFunc(gl.SRC_ALPHA, gl.DST_ALPHA);
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         }
 
         webglUtils.resizeCanvasToDisplaySize(gl.canvas);
