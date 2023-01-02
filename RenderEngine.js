@@ -1,35 +1,40 @@
 export class RenderEngine {
-    constructor(gl) {
+    constructor(gl, enablePicker = false) {
         this.gl = gl;
-		gl.enable(gl.CULL_FACE);
+        this.enablePicker = enablePicker;
+
+        gl.enable(gl.CULL_FACE);
         gl.enable(gl.DEPTH_TEST);
+        webglUtils.resizeCanvasToDisplaySize(gl.canvas);
 
-		// Create a texture to render to
-		this.targetTexture = gl.createTexture();
-		gl.bindTexture(gl.TEXTURE_2D, this.targetTexture);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-	
-		// create a depth renderbuffer
-		this.depthBuffer = gl.createRenderbuffer();
-		gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthBuffer);
-	
-		// Create and bind the framebuffer
-		this.fb = gl.createFramebuffer();
-		gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb);
-	
-		// attach the texture as the first color attachment
-		const attachmentPoint = gl.COLOR_ATTACHMENT0;
-		const level = 0;
-		gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, this.targetTexture, level);
-	
-		// make a depth buffer and the same size as the targetTexture
-		gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.depthBuffer);
+        if (enablePicker) {
+            // Create a texture to render to
+            this.targetTexture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, this.targetTexture);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            // create a depth renderbuffer
+            this.depthBuffer = gl.createRenderbuffer();
+            gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthBuffer);
 
-		setFramebufferAttachmentSizes(gl, this.targetTexture, this.depthBuffer);
+            // Create and bind the framebuffer
+            this.fb = gl.createFramebuffer();
+            gl.bindFramebuffer(gl.FRAMEBUFFER, this.fb);
+
+            // attach the texture as the first color attachment
+            const attachmentPoint = gl.COLOR_ATTACHMENT0;
+            const level = 0;
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, this.targetTexture, level);
+
+            // make a depth buffer and the same size as the targetTexture
+            gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.depthBuffer);
+
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+            setFramebufferAttachmentSizes(gl, this.targetTexture, this.depthBuffer);
+        }
     }
 
     /**
@@ -39,8 +44,7 @@ export class RenderEngine {
      * @param {*} objList Array of objects to render. Each object can have a center object and a rotation object but must have a parts array.
      */
     render(cameraUniforms, programInfo, objList, pickerProgramInfo) {
-
-		if (webglUtils.resizeCanvasToDisplaySize(this.gl.canvas)) {
+        if (this.enablePicker && webglUtils.resizeCanvasToDisplaySize(this.gl.canvas)) {
             // the canvas was resized, make the framebuffer attachments match
             setFramebufferAttachmentSizes(this.gl, this.targetTexture, this.depthBuffer);
         }
@@ -49,32 +53,42 @@ export class RenderEngine {
             computeObjWorld(obj);
         });
 
-		// ------ Draw the objects to the texture --------
+        if (this.enablePicker) {
+            // ------ Draw the object id to the picker texture --------
 
-        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.fb);
-        this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
+            this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.fb);
+            this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
 
-        this.gl.enable(this.gl.CULL_FACE);
-        this.gl.enable(this.gl.DEPTH_TEST);
+            this.gl.enable(this.gl.CULL_FACE);
+            this.gl.enable(this.gl.DEPTH_TEST);
 
-        // Clear the canvas AND the depth buffer.
-        this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+            // Clear the canvas AND the depth buffer.
+            this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
+            drawObjects(this.gl, objList, pickerProgramInfo, cameraUniforms);
 
-        drawObjects(this.gl, objList, pickerProgramInfo, cameraUniforms);
+            // ------ Draw the objects to the canvas
 
-        // ------ Draw the objects to the canvas
+            this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+            this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
+        }
 
-        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
-        this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
-
+		// ----- Draw the objects to the "real" canvas
         drawObjects(this.gl, objList, programInfo, cameraUniforms);
     }
 
-	detectObject(mouseX, mouseY) {
-		this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.fb);
+	/**
+	 * If enablePicker is true, the render engine will generate a secondary frameBuffer to render the ids of the objects.
+	 * Each object will have a texture with the id represented as color.
+	 * This function will return the id of the object that is under the mouse.
+	 * @param {*} mouseX The x coordinate of the mouse in the canvas
+	 * @param {*} mouseY The y coordinate of the mouse in the canvas
+	 * @returns 
+	 */
+    detectObject(mouseX, mouseY) {
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.fb);
 
-		const pixelX = (mouseX * this.gl.canvas.width) / this.gl.canvas.clientWidth;
+        const pixelX = (mouseX * this.gl.canvas.width) / this.gl.canvas.clientWidth;
         const pixelY = this.gl.canvas.height - (mouseY * this.gl.canvas.height) / this.gl.canvas.clientHeight - 1;
         const data = new Uint8Array(4);
         this.gl.readPixels(pixelX, // x
@@ -86,26 +100,30 @@ export class RenderEngine {
             data); // typed array to hold result
         const id = data[0] + (data[1] << 8) + (data[2] << 16) + (data[3] << 24);
 
-		this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
-		return id;
-	}
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+        return id;
+    }
 }
 
 function setFramebufferAttachmentSizes(gl, targetTexture, depthBuffer) {
-	gl.bindTexture(gl.TEXTURE_2D, targetTexture);
-	// define size and format of level 0
-	const level = 0;
-	const internalFormat = gl.RGBA;
-	const border = 0;
-	const format = gl.RGBA;
-	const type = gl.UNSIGNED_BYTE;
-	const data = null;
-	gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, gl.canvas.width, gl.canvas.height, border, format, type, data);
+    gl.bindTexture(gl.TEXTURE_2D, targetTexture);
+    // define size and format of level 0
+    const level = 0;
+    const internalFormat = gl.RGBA;
+    const border = 0;
+    const format = gl.RGBA;
+    const type = gl.UNSIGNED_BYTE;
+    const data = null;
+    gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, gl.canvas.width, gl.canvas.height, border, format, type, data);
 
-	gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
-	gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, gl.canvas.width, gl.canvas.height);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, gl.canvas.width, gl.canvas.height);
 }
 
+/**
+ * This function will compute the world matrix of an object.
+ * @param {*} obj The object to compute the world matrix
+ */
 function computeObjWorld(obj) {
     let u_world = m4.identity();
 
@@ -134,9 +152,17 @@ function computeObjWorld(obj) {
     obj.uniforms.u_world = u_world;
 }
 
+/**
+ * This function will draw the objects in the list.
+ * It will use the programInfo to set the uniforms and attributes.
+ * @param {*} gl WebGL context
+ * @param {*} objectsToDraw List of objects to draw
+ * @param {*} programInfo The programInfo to use to set the uniforms and attributes
+ * @param {*} cameraUniforms The uniforms to set for the camera
+ */
 function drawObjects(gl, objectsToDraw, programInfo, cameraUniforms) {
     gl.useProgram(programInfo.program);
-    webglUtils.setUniforms(programInfo, cameraUniforms);
+    webglUtils.setUniforms(programInfo, cameraUniforms); // Can I move this inside object uniforms?
 
     objectsToDraw.forEach(obj => {
         for (const {
