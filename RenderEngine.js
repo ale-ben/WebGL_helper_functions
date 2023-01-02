@@ -73,18 +73,18 @@ export class RenderEngine {
             this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
         }
 
-		// ----- Draw the objects to the "real" canvas
+        // ----- Draw the objects to the "real" canvas
         drawObjects(this.gl, objList, programInfo, cameraUniforms);
     }
 
-	/**
-	 * If enablePicker is true, the render engine will generate a secondary frameBuffer to render the ids of the objects.
-	 * Each object will have a texture with the id represented as color.
-	 * This function will return the id of the object that is under the mouse.
-	 * @param {*} mouseX The x coordinate of the mouse in the canvas
-	 * @param {*} mouseY The y coordinate of the mouse in the canvas
-	 * @returns 
-	 */
+    /**
+     * If enablePicker is true, the render engine will generate a secondary frameBuffer to render the ids of the objects.
+     * Each object will have a texture with the id represented as color.
+     * This function will return the id of the object that is under the mouse.
+     * @param {*} mouseX The x coordinate of the mouse in the canvas
+     * @param {*} mouseY The y coordinate of the mouse in the canvas
+     * @returns
+     */
     detectObject(mouseX, mouseY) {
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.fb);
 
@@ -104,9 +104,9 @@ export class RenderEngine {
         return id;
     }
 
-	// Picker shaders
-	static pickerShaders = {
-		vs: `
+    // Picker shaders
+    static pickerShaders = {
+        vs: `
 		attribute vec4 a_position;
 	
 		uniform mat4 u_projection;
@@ -120,7 +120,7 @@ export class RenderEngine {
 			gl_Position = u_projection * u_view * worldPosition;
 		}
 		`,
-		fs: `
+        fs: `
 		precision mediump float;
 		uniform vec4 u_id;
 	
@@ -128,11 +128,11 @@ export class RenderEngine {
 			gl_FragColor = u_id;
 		}
 		`
-	}
+    };
 
-	// Default shaders
-	static defaultShaders = {
-		vs: `
+    // Default shaders
+    static defaultShaders = {
+        vs: `
 		attribute vec4 a_position;
 		attribute vec3 a_normal;
 		attribute vec3 a_tangent;
@@ -162,7 +162,7 @@ export class RenderEngine {
 		  v_color = a_color;
 		}
 		`,
-		fs: `
+        fs: `
 		precision highp float;
 	  
 		varying vec3 v_normal;
@@ -212,7 +212,7 @@ export class RenderEngine {
 			  effectiveOpacity);
 		}
 		`
-	}
+    };
 }
 
 function setFramebufferAttachmentSizes(gl, targetTexture, depthBuffer) {
