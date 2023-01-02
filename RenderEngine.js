@@ -1,13 +1,26 @@
 export class RenderEngine {
-    constructor(gl, enablePicker = false) {
+	/**
+	 * 
+	 * @param {*} gl 
+	 * @param {*} options Dictionary of options.
+	 * @param {boolean} options.enablePicker If true, the render engine will render to a texture and detect objects by their color.
+	 * @param {boolean} options.enableTransparency If true, the render engine will enable alpha blending.
+	 */
+    constructor(gl, options = {}) {
         this.gl = gl;
-        this.enablePicker = enablePicker;
+        this.options = options;
 
         gl.enable(gl.CULL_FACE);
         gl.enable(gl.DEPTH_TEST);
+
+        if (options.enableTransparency) {
+            gl.enable(gl.BLEND); // enable alpha blending
+            gl.blendFunc(gl.SRC_ALPHA, gl.DST_ALPHA);
+        }
+
         webglUtils.resizeCanvasToDisplaySize(gl.canvas);
 
-        if (enablePicker) {
+        if (options.enablePicker) {
             // Create a texture to render to
             this.targetTexture = gl.createTexture();
             gl.bindTexture(gl.TEXTURE_2D, this.targetTexture);
@@ -44,7 +57,7 @@ export class RenderEngine {
      * @param {*} objList Array of objects to render. Each object can have a center object and a rotation object but must have a parts array.
      */
     render(cameraUniforms, programInfo, objList, pickerProgramInfo) {
-        if (this.enablePicker && webglUtils.resizeCanvasToDisplaySize(this.gl.canvas)) {
+        if (this.options.enablePicker && webglUtils.resizeCanvasToDisplaySize(this.gl.canvas)) {
             // the canvas was resized, make the framebuffer attachments match
             setFramebufferAttachmentSizes(this.gl, this.targetTexture, this.depthBuffer);
         }
@@ -53,7 +66,7 @@ export class RenderEngine {
             computeObjWorld(obj);
         });
 
-        if (this.enablePicker) {
+        if (this.options.enablePicker) {
             // ------ Draw the object id to the picker texture --------
 
             this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.fb);
@@ -282,7 +295,6 @@ function drawObjects(gl, objectsToDraw, programInfo, cameraUniforms) {
             // calls gl.bindBuffer, gl.enableVertexAttribArray, gl.vertexAttribPointer
             webglUtils.setBuffersAndAttributes(gl, programInfo, bufferInfo);
 
-            // calls gl.uniform
             webglUtils.setUniforms(programInfo, obj.uniforms, material);
 
             // calls gl.drawArrays or gl.drawElements
