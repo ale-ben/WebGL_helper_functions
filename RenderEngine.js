@@ -71,7 +71,24 @@ export class RenderEngine {
         drawObjects(this.gl, objList, programInfo, cameraUniforms);
     }
 
+	detectObject(mouseX, mouseY) {
+		this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.fb);
 
+		const pixelX = (mouseX * this.gl.canvas.width) / this.gl.canvas.clientWidth;
+        const pixelY = this.gl.canvas.height - (mouseY * this.gl.canvas.height) / this.gl.canvas.clientHeight - 1;
+        const data = new Uint8Array(4);
+        this.gl.readPixels(pixelX, // x
+            pixelY, // y
+            1, // width
+            1, // height
+            this.gl.RGBA, // format
+            this.gl.UNSIGNED_BYTE, // type
+            data); // typed array to hold result
+        const id = data[0] + (data[1] << 8) + (data[2] << 16) + (data[3] << 24);
+
+		this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+		return id;
+	}
 }
 
 function setFramebufferAttachmentSizes(gl, targetTexture, depthBuffer) {
