@@ -8,19 +8,21 @@ export class RenderEngine {
 	 */
     constructor(gl, options = {}) {
         this.gl = gl;
-        this.options = options;
+
+		this.enablePicker = options.enablePicker || false;
+		this.enableTransparency = options.enableTransparency || false;
 
         gl.enable(gl.CULL_FACE);
         gl.enable(gl.DEPTH_TEST);
 
-        if (options.enableTransparency) {
+        if (this.enableTransparency) {
             gl.enable(gl.BLEND); // enable alpha blending
             gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         }
 
         webglUtils.resizeCanvasToDisplaySize(gl.canvas);
 
-        if (options.enablePicker) {
+        if (this.enablePicker) {
             // Create a texture to render to
             this.targetTexture = gl.createTexture();
             gl.bindTexture(gl.TEXTURE_2D, this.targetTexture);
@@ -57,7 +59,7 @@ export class RenderEngine {
      * @param {*} objList Array of objects to render. Each object can have a center object and a rotation object but must have a parts array.
      */
     render(cameraUniforms, programInfo, objList, pickerProgramInfo) {
-        if (this.options.enablePicker && webglUtils.resizeCanvasToDisplaySize(this.gl.canvas)) {
+        if (this.enablePicker && webglUtils.resizeCanvasToDisplaySize(this.gl.canvas)) {
             // the canvas was resized, make the framebuffer attachments match
             setFramebufferAttachmentSizes(this.gl, this.targetTexture, this.depthBuffer);
         }
@@ -66,7 +68,7 @@ export class RenderEngine {
             computeObjWorld(obj);
         });
 
-        if (this.options.enablePicker) {
+        if (this.enablePicker) {
             // ------ Draw the object id to the picker texture --------
 
             this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.fb);
@@ -74,6 +76,7 @@ export class RenderEngine {
 
             this.gl.enable(this.gl.CULL_FACE);
             this.gl.enable(this.gl.DEPTH_TEST);
+			this.gl.disable(this.gl.BLEND);
 
             // Clear the canvas AND the depth buffer.
             this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
@@ -84,6 +87,7 @@ export class RenderEngine {
 
             this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
             this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
+			this.gl.enable(this.gl.BLEND);
         }
 
         // ----- Draw the objects to the "real" canvas
