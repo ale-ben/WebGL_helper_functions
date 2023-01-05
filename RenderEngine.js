@@ -292,17 +292,19 @@ function drawObjects(gl, objectsToDraw, programInfo, cameraUniforms) {
     webglUtils.setUniforms(programInfo, cameraUniforms); // Can I move this inside object uniforms?
 
     objectsToDraw.forEach(obj => {
-        for (const {
-                bufferInfo,
-                material
-            } of obj.parts) {
-            // calls gl.bindBuffer, gl.enableVertexAttribArray, gl.vertexAttribPointer
-            webglUtils.setBuffersAndAttributes(gl, programInfo, bufferInfo);
+        if (!obj.hidden) {
+            for (const {
+                    bufferInfo,
+                    material
+                } of obj.parts) {
+                // calls gl.bindBuffer, gl.enableVertexAttribArray, gl.vertexAttribPointer
+                webglUtils.setBuffersAndAttributes(gl, programInfo, bufferInfo);
 
-            webglUtils.setUniforms(programInfo, obj.uniforms, material);
+                webglUtils.setUniforms(programInfo, obj.uniforms, material);
 
-            // calls gl.drawArrays or gl.drawElements
-            webglUtils.drawBufferInfo(gl, bufferInfo);
+                // calls gl.drawArrays or gl.drawElements
+                webglUtils.drawBufferInfo(gl, bufferInfo);
+            }
         }
     });
 }
