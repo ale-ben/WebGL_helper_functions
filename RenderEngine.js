@@ -1,16 +1,16 @@
 export class RenderEngine {
-	/**
-	 * 
-	 * @param {*} gl 
-	 * @param {*} options Dictionary of options.
-	 * @param {boolean} options.enablePicker If true, the render engine will render to a texture and detect objects by their color.
-	 * @param {boolean} options.enableTransparency If true, the render engine will enable alpha blending.
-	 */
+    /**
+     *
+     * @param {*} gl
+     * @param {*} options Dictionary of options.
+     * @param {boolean} options.enablePicker If true, the render engine will render to a texture and detect objects by their color.
+     * @param {boolean} options.enableTransparency If true, the render engine will enable alpha blending.
+     */
     constructor(gl, options = {}) {
         this.gl = gl;
 
-		this.enablePicker = options.enablePicker || false;
-		this.enableTransparency = options.enableTransparency || false;
+        this.enablePicker = options.enablePicker || false;
+        this.enableTransparency = options.enableTransparency || false;
 
         gl.enable(gl.CULL_FACE);
         gl.enable(gl.DEPTH_TEST);
@@ -76,7 +76,7 @@ export class RenderEngine {
 
             this.gl.enable(this.gl.CULL_FACE);
             this.gl.enable(this.gl.DEPTH_TEST);
-			this.gl.disable(this.gl.BLEND);
+            this.gl.disable(this.gl.BLEND);
 
             // Clear the canvas AND the depth buffer.
             this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
@@ -87,7 +87,7 @@ export class RenderEngine {
 
             this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
             this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
-			this.gl.enable(this.gl.BLEND);
+            this.gl.enable(this.gl.BLEND);
         }
 
         // ----- Draw the objects to the "real" canvas
