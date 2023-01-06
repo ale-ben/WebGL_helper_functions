@@ -254,25 +254,34 @@ function setFramebufferAttachmentSizes(gl, targetTexture, depthBuffer) {
 function computeObjWorld(obj) {
     let u_world = m4.identity();
 
-    // Handle object translation
+	// Handle object translation
+
+    if (obj.rotation.onAxes && (obj.rotation.onAxes.x != 0 || obj.rotation.onAxes.y != 0 || obj.rotation.onAxes.z != 0)) {
+        if (obj.rotation.onAxes.x != 0) {
+            u_world = m4.xRotate(u_world, obj.rotation.onAxes.x);
+        }
+        if (obj.rotation.onAxes.y != 0) {
+            u_world = m4.yRotate(u_world, obj.rotation.onAxes.y);
+        }
+        if (obj.rotation.onAxes.z != 0) {
+            u_world = m4.zRotate(u_world, obj.rotation.onAxes.z);
+        }
+    }
+
+	// Handle object translation
     if (obj.center && (obj.center.x != 0 || obj.center.y != 0 || obj.center.z != 0)) {
         u_world = m4.translate(u_world, obj.center.x, obj.center.y, obj.center.z);
     }
 
-    // Handle object rotation
-    //u_world = m4.xRotate(u_world, time);
-    //u_world = m4.yRotate(u_world, time);
-    //u_world = m4.zRotate(u_world, time);
-
-    if (obj.rotation) {
-        if (obj.rotation.x != 0) {
-            u_world = m4.xRotate(u_world, obj.rotation.x);
+	if (obj.rotation.onSelf && (obj.rotation.onSelf.x != 0 || obj.rotation.onSelf.y != 0 || obj.rotation.onSelf.z != 0)) {
+        if (obj.rotation.onSelf.x != 0) {
+            u_world = m4.xRotate(u_world, obj.rotation.onSelf.x);
         }
-        if (obj.rotation.y != 0) {
-            u_world = m4.yRotate(u_world, obj.rotation.y);
+        if (obj.rotation.onSelf.y != 0) {
+            u_world = m4.yRotate(u_world, obj.rotation.onSelf.y);
         }
-        if (obj.rotation.z != 0) {
-            u_world = m4.zRotate(u_world, obj.rotation.z);
+        if (obj.rotation.onSelf.z != 0) {
+            u_world = m4.zRotate(u_world, obj.rotation.onSelf.z);
         }
     }
 
