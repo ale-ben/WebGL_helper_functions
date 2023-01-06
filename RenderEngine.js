@@ -254,7 +254,7 @@ function setFramebufferAttachmentSizes(gl, targetTexture, depthBuffer) {
 function computeObjWorld(obj) {
     let u_world = m4.identity();
 
-	// Handle object translation
+    // Handle object translation
 
     if (obj.rotation.onAxes && (obj.rotation.onAxes.x != 0 || obj.rotation.onAxes.y != 0 || obj.rotation.onAxes.z != 0)) {
         if (obj.rotation.onAxes.x != 0) {
@@ -268,12 +268,12 @@ function computeObjWorld(obj) {
         }
     }
 
-	// Handle object translation
+    // Handle object translation
     if (obj.center && (obj.center.x != 0 || obj.center.y != 0 || obj.center.z != 0)) {
         u_world = m4.translate(u_world, obj.center.x, obj.center.y, obj.center.z);
     }
 
-	if (obj.rotation.onSelf && (obj.rotation.onSelf.x != 0 || obj.rotation.onSelf.y != 0 || obj.rotation.onSelf.z != 0)) {
+    if (obj.rotation.onSelf && (obj.rotation.onSelf.x != 0 || obj.rotation.onSelf.y != 0 || obj.rotation.onSelf.z != 0)) {
         if (obj.rotation.onSelf.x != 0) {
             u_world = m4.xRotate(u_world, obj.rotation.onSelf.x);
         }
