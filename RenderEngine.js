@@ -17,8 +17,8 @@ export class RenderEngine {
 
         if (this.enableTransparency) {
             gl.enable(gl.BLEND); // enable alpha blending
-            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         }
+		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
         webglUtils.resizeCanvasToDisplaySize(gl.canvas);
 
@@ -76,6 +76,7 @@ export class RenderEngine {
 
             this.gl.enable(this.gl.CULL_FACE);
             this.gl.enable(this.gl.DEPTH_TEST);
+			if (this.enableTransparency)
             this.gl.disable(this.gl.BLEND);
 
             // Clear the canvas AND the depth buffer.
@@ -87,6 +88,7 @@ export class RenderEngine {
 
             this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
             this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
+			if (this.enableTransparency)
             this.gl.enable(this.gl.BLEND);
         }
 
@@ -230,6 +232,15 @@ export class RenderEngine {
 		}
 		`
     };
+
+    setTransparency(transparency) {
+        if (transparency) {
+            this.gl.enable(this.gl.BLEND);
+        } else {
+            this.gl.disable(this.gl.BLEND);
+        }
+		this.enableTransparency = transparency;
+    }
 }
 
 function setFramebufferAttachmentSizes(gl, targetTexture, depthBuffer) {
