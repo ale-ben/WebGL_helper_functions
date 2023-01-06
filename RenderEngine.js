@@ -301,7 +301,7 @@ function drawObjects(gl, objectsToDraw, programInfo, cameraUniforms) {
     webglUtils.setUniforms(programInfo, cameraUniforms); // Can I move this inside object uniforms?
 
     objectsToDraw.forEach(obj => {
-        if (!obj.hidden) {
+        if (!obj.hidden && obj.parts) {
             for (const {
                     bufferInfo,
                     material
