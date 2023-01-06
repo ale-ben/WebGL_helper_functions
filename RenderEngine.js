@@ -18,7 +18,7 @@ export class RenderEngine {
         if (this.enableTransparency) {
             gl.enable(gl.BLEND); // enable alpha blending
         }
-		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
         webglUtils.resizeCanvasToDisplaySize(gl.canvas);
 
@@ -76,8 +76,8 @@ export class RenderEngine {
 
             this.gl.enable(this.gl.CULL_FACE);
             this.gl.enable(this.gl.DEPTH_TEST);
-			if (this.enableTransparency)
-            this.gl.disable(this.gl.BLEND);
+            if (this.enableTransparency)
+                this.gl.disable(this.gl.BLEND);
 
             // Clear the canvas AND the depth buffer.
             this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
@@ -88,8 +88,8 @@ export class RenderEngine {
 
             this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
             this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
-			if (this.enableTransparency)
-            this.gl.enable(this.gl.BLEND);
+            if (this.enableTransparency)
+                this.gl.enable(this.gl.BLEND);
         }
 
         // ----- Draw the objects to the "real" canvas
@@ -239,7 +239,7 @@ export class RenderEngine {
         } else {
             this.gl.disable(this.gl.BLEND);
         }
-		this.enableTransparency = transparency;
+        this.enableTransparency = transparency;
     }
 }
 
